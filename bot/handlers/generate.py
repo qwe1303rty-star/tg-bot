@@ -304,7 +304,7 @@ async def callback_repeat(callback: CallbackQuery, session):
 @router.callback_query(lambda c: c.data.startswith("edit:"))
 async def callback_edit(callback: CallbackQuery, state: FSMContext):
     await state.set_state(GenerateState.waiting_prompt)
-    await callback.message.edit_text(
+    await callback.message.answer(
         "✏️ Введите новый промпт для изображения:",
         reply_markup=get_cancel_keyboard(),
     )
