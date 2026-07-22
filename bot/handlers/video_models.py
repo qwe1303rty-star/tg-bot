@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from bot.database.repositories.user import UserRepository
 from bot.keyboards.main import get_main_keyboard
-from bot.services.ai_providers.pollinations_video import VIDEO_MODELS
+from bot.services.ai_providers.replicate_video import VIDEO_MODELS
 
 router = Router(name="video_models")
 

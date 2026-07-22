@@ -13,9 +13,9 @@ from bot.database.repositories.user import UserRepository
 from bot.handlers.states import VideoState
 from bot.keyboards.generation import get_cancel_keyboard, get_video_keyboard
 from bot.keyboards.main import get_main_keyboard
-from bot.services.ai_providers.pollinations_video import (
+from bot.services.ai_providers.replicate_video import (
     VIDEO_MODELS,
-    PollinationsVideoProvider,
+    ReplicateVideoProvider,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,7 +124,7 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
     provider_display = f"{model_info['emoji']} {model_info['name']}"
 
     start = time.time()
-    provider_obj = PollinationsVideoProvider(api_key=settings.pollinations_api_key)
+    provider_obj = ReplicateVideoProvider(api_key=settings.replicate_api_token)
     loading_msg = await message.answer(
         f"⏳ Генерирую видео...\n"
         f"🤖 Модель: {provider_display}\n\n"
@@ -239,7 +239,7 @@ async def callback_repeat_video(callback: CallbackQuery, session):
     provider_display = f"{model_info['emoji']} {model_info['name']}"
 
     start = time.time()
-    provider_obj = PollinationsVideoProvider(api_key=settings.pollinations_api_key)
+    provider_obj = ReplicateVideoProvider(api_key=settings.replicate_api_token)
     loading_msg = await callback.message.answer(
         f"⏳ Повторная генерация видео...\n"
         f"🤖 Модель: {provider_display}\n\n"

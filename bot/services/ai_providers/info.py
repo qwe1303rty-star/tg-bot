@@ -23,34 +23,19 @@ PROVIDER_INFO = {
 
 VIDEO_PROVIDER_INFO = {
     "wan": {
-        "name": "Wan",
+        "name": "Wan 2.1",
         "emoji": "🎬",
-        "description": "2-15 сек, с аудио",
+        "description": "5-10 сек, высокое качество",
     },
-    "wan-fast": {
-        "name": "Wan Fast",
+    "minimax": {
+        "name": "MiniMax",
         "emoji": "⚡",
-        "description": "2-15 сек, быстрая",
+        "description": "5 сек, быстрая генерация",
     },
-    "wan-pro": {
-        "name": "Wan Pro",
-        "emoji": "💎",
-        "description": "2-15 сек, высокое качество",
-    },
-    "veo": {
-        "name": "Veo",
-        "emoji": "🔵",
-        "description": "4-8 сек, Google Veo",
-    },
-    "seedance": {
-        "name": "Seedance",
-        "emoji": "💃",
-        "description": "2-10 сек, ByteDance",
-    },
-    "nova-reel": {
-        "name": "Nova Reel",
+    "ltx": {
+        "name": "LTX Video",
         "emoji": "🎞",
-        "description": "6-120 сек,最长 duration",
+        "description": "2-5 сек, лёгкая модель",
     },
 }
 

@@ -1,10 +1,10 @@
 INFO:__main__:Bot starting...
 INFO:bot.services.ai_providers.registry:AI provider registered: stub
 INFO:bot.services.ai_providers.registry:AI provider registered: pollinations
-INFO:bot.services.ai_providers.registry:AI provider registered: pollinations_video
+INFO:bot.services.ai_providers.registry:AI provider registered: replicate_video
 INFO:bot.services.ai_providers.registry:AI provider registered: dalle
 INFO:bot.services.ai_providers.registry:AI provider registered: stability
 INFO:bot.services.ai_providers.registry:AI provider registered: flux
-INFO:__main__:Bot started. Providers: ['stub', 'pollinations', 'pollinations_video', 'dalle', 'stability', 'flux']. Chat API: configured
+INFO:__main__:Bot started. Providers: ['stub', 'pollinations', 'replicate_video', 'dalle', 'stability', 'flux']. Chat API: configured
 INFO:aiogram.dispatcher:Start polling
 INFO:aiogram.dispatcher:Run polling for bot @lapka_ai_bot id=8939570124 - 'À‡ÔÍ‡ »» - CHATGPT | SORA 2| CLAUDE'

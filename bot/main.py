@@ -22,7 +22,7 @@ from bot.middlewares.db import DatabaseMiddleware
 from bot.services.ai_providers.dalle import DalleProvider
 from bot.services.ai_providers.flux import FluxProvider
 from bot.services.ai_providers.pollinations import PollinationsProvider
-from bot.services.ai_providers.pollinations_video import PollinationsVideoProvider
+from bot.services.ai_providers.replicate_video import ReplicateVideoProvider
 from bot.services.ai_providers.registry import ProviderRegistry
 from bot.services.ai_providers.stability import StabilityProvider
 from bot.services.ai_providers.stub import StubProvider
@@ -38,7 +38,7 @@ async def on_startup() -> None:
 
     ProviderRegistry.register(StubProvider())
     ProviderRegistry.register(PollinationsProvider(api_key=settings.pollinations_api_key))
-    ProviderRegistry.register(PollinationsVideoProvider(api_key=settings.pollinations_api_key))
+    ProviderRegistry.register(ReplicateVideoProvider(api_key=settings.replicate_api_token))
     ProviderRegistry.register(DalleProvider())
     ProviderRegistry.register(StabilityProvider())
     ProviderRegistry.register(FluxProvider())
