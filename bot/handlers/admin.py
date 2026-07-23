@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
+import logging
 from bot.config import settings
 from bot.database.repositories.credits import CreditsRepository
 from bot.database.repositories.stats import StatsRepository
@@ -14,6 +15,7 @@ from bot.keyboards.admin import (
 from bot.keyboards.main import get_main_keyboard
 
 router = Router(name="admin")
+logger = logging.getLogger(__name__)
 
 USERS_PER_PAGE = 10
 HISTORY_PER_PAGE = 10
@@ -276,7 +278,11 @@ async def cb_admin_history_nav(callback: CallbackQuery, session) -> None:
 
 @router.message(F.text.startswith("/give_credits"))
 async def cmd_give_credits(message: Message, session) -> None:
+    logger.info("give_credits command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
+
     if not _is_admin(message.from_user.id):
+        logger.warning("give_credits: user %s is NOT admin (admin_ids=%s)", message.from_user.id, settings.admin_ids)
+        await message.answer(f"❌ Ты не админ. Твой ID: {message.from_user.id}")
         return
 
     parts = message.text.split()
@@ -308,15 +314,23 @@ async def cmd_give_credits(message: Message, session) -> None:
     )
 
 
-@router.message(F.text == "/test_sheets")
+@router.message(F.text.startswith("/test_sheets"))
 async def cmd_test_sheets(message: Message) -> None:
+    logger.info("test_sheets command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
+
     if not _is_admin(message.from_user.id):
+        logger.warning("test_sheets: user %s is NOT admin (admin_ids=%s)", message.from_user.id, settings.admin_ids)
+        await message.answer(f"❌ Ты не админ. Твой ID: {message.from_user.id}. Admin IDs: {settings.admin_ids}")
         return
 
+    logger.info("test_sheets: user is admin, checking GOOGLE_SHEETS_URL")
+
     if not settings.google_sheets_url:
+        logger.error("test_sheets: GOOGLE_SHEETS_URL is empty!")
         await message.answer("❌ GOOGLE_SHEETS_URL не задан в переменных Railway")
         return
 
+    logger.info("test_sheets: GOOGLE_SHEETS_URL=%s", settings.google_sheets_url)
     await message.answer("⏳ Отправляю тестовую строку в Google Таблицу...")
 
     sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
