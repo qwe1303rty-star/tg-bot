@@ -73,6 +73,7 @@ async def main() -> None:
     db_middleware = DatabaseMiddleware()
     for r in [
         start_router,
+        admin_router,
         generate_router,
         video_router,
         profile_router,
@@ -81,13 +82,13 @@ async def main() -> None:
         premium_router,
         chat_router,
         about_router,
-        admin_router,
     ]:
         r.message.middleware(db_middleware)
         r.callback_query.middleware(db_middleware)
 
     dp.include_routers(
         start_router,
+        admin_router,
         generate_router,
         video_router,
         profile_router,
@@ -96,7 +97,6 @@ async def main() -> None:
         premium_router,
         chat_router,
         about_router,
-        admin_router,
     )
 
     dp["bot"] = bot

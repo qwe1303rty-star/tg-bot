@@ -1,8 +1,7 @@
 from aiogram import Router
 from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import Message
 
-from bot.config import settings
 from bot.database.repositories.user import UserRepository
 from bot.keyboards.main import get_main_keyboard
 
@@ -58,12 +57,3 @@ async def cmd_start(message: Message, session) -> None:
         )
 
     await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))
-
-    if message.from_user.id in settings.admin_ids:
-        admin_kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
-                [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users:0")],
-            ]
-        )
-        await message.answer("🔧 <b>Панель администратора:</b>", reply_markup=admin_kb)
