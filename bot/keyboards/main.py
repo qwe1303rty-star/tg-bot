@@ -27,10 +27,4 @@ def get_main_keyboard(user_id: int = 0) -> ReplyKeyboardMarkup:
         ],
     ]
 
-    is_admin = user_id in settings.admin_ids
-    logger.info("Keyboard: user_id=%s, admin_ids=%s, is_admin=%s", user_id, settings.admin_ids, is_admin)
-
-    if is_admin:
-        keyboard.append([KeyboardButton(text="📊 Статистика")])
-
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
