@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     db_name: str = "ai_image_bot"
     db_user: str = "postgres"
     db_password: str = "postgres"
-    db_url: str = "sqlite+aiosqlite:///bot.db"
+    db_url: str = "sqlite+aiosqlite:///data/bot.db"
 
     openai_api_key: str = ""
     stability_api_key: str = ""
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     admin_ids_str: str = ""
 
     default_ai_provider: str = "dalle"
-    media_path: Path = Path("./media/generated")
+    media_path: Path = Path("/data/media/generated")
 
     @property
     def admin_ids(self) -> list[int]:
