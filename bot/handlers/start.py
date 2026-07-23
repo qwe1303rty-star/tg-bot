@@ -64,7 +64,6 @@ async def cmd_start(message: Message, session) -> None:
             inline_keyboard=[
                 [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
                 [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users:0")],
-                [InlineKeyboardButton(text="📜 История запросов", callback_data="admin:history_select")],
             ]
         )
         await message.answer("🔧 <b>Панель администратора:</b>", reply_markup=admin_kb)
