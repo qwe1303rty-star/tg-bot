@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     openrouter_api_key: str = ""
     pollinations_api_key: str = ""
     replicate_api_token: str = ""
+    kie_api_key: str = ""
     chat_model: str = "google/gemini-2.5-flash"
     proxy_url: str = ""
 

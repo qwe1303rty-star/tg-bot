@@ -13,10 +13,7 @@ from bot.database.repositories.user import UserRepository
 from bot.handlers.states import VideoState
 from bot.keyboards.generation import get_cancel_keyboard, get_video_keyboard
 from bot.keyboards.main import get_main_keyboard
-from bot.services.ai_providers.replicate_video import (
-    VIDEO_MODELS,
-    ReplicateVideoProvider,
-)
+from bot.services.ai_providers.kie_video import KIE_VIDEO_MODELS, KieVideoProvider
 
 logger = logging.getLogger(__name__)
 
@@ -120,11 +117,11 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
         return
 
     provider_key = user.selected_video_provider
-    model_info = VIDEO_MODELS.get(provider_key, VIDEO_MODELS["wan"])
+    model_info = KIE_VIDEO_MODELS.get(provider_key, KIE_VIDEO_MODELS["grok"])
     provider_display = f"{model_info['emoji']} {model_info['name']}"
 
     start = time.time()
-    provider_obj = ReplicateVideoProvider(api_key=settings.replicate_api_token)
+    provider_obj = KieVideoProvider(api_key=settings.kie_api_key)
     loading_msg = await message.answer(
         f"⏳ Генерирую видео...\n"
         f"🤖 Модель: {provider_display}\n\n"
@@ -141,9 +138,6 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
         video_bytes = await provider_obj.generate(
             prompt,
             model=provider_key,
-            width=720,
-            height=1280,
-            duration=5,
         )
 
         gen_repo = GenerationRepository(session)
@@ -235,11 +229,11 @@ async def callback_repeat_video(callback: CallbackQuery, session):
     await callback.answer()
 
     provider_key = generation.provider
-    model_info = VIDEO_MODELS.get(provider_key, VIDEO_MODELS["wan"])
+    model_info = KIE_VIDEO_MODELS.get(provider_key, KIE_VIDEO_MODELS["grok"])
     provider_display = f"{model_info['emoji']} {model_info['name']}"
 
     start = time.time()
-    provider_obj = ReplicateVideoProvider(api_key=settings.replicate_api_token)
+    provider_obj = KieVideoProvider(api_key=settings.kie_api_key)
     loading_msg = await callback.message.answer(
         f"⏳ Повторная генерация видео...\n"
         f"🤖 Модель: {provider_display}\n\n"
@@ -260,9 +254,6 @@ async def callback_repeat_video(callback: CallbackQuery, session):
         video_bytes = await provider_obj.generate(
             clean_prompt,
             model=provider_key,
-            width=720,
-            height=1280,
-            duration=5,
         )
 
         new_gen = await gen_repo.create(

@@ -25,22 +25,34 @@ VIDEO_PROGRESS_STAGES = [
 
 VIDEO_MODELS = {
     "wan": {
-        "name": "Wan 2.1",
+        "name": "Wan 2.5 T2V",
         "emoji": "🎬",
         "desc": "5-10 сек, высокое качество",
-        "model_id": "wan-video/wan-2.1",
+        "model_id": "wan-video/wan-2.5-t2v-fast",
     },
-    "minimax": {
-        "name": "MiniMax",
+    "seedance": {
+        "name": "Seedance 2.0",
+        "emoji": "✨",
+        "desc": "5-10 сек, ByteDance",
+        "model_id": "bytedance/seedance-2.0",
+    },
+    "seedance_mini": {
+        "name": "Seedance Mini",
         "emoji": "⚡",
-        "desc": "5 сек, быстрая генерация",
-        "model_id": "minimax/video-01-live",
+        "desc": "Быстрая генерация, ниже цена",
+        "model_id": "bytedance/seedance-2.0-mini",
     },
-    "ltx": {
-        "name": "LTX Video",
+    "happyhorse": {
+        "name": "Happy Horse",
+        "emoji": "🐴",
+        "desc": "5 сек, Alibaba",
+        "model_id": "alibaba/happyhorse-1.1",
+    },
+    "luma": {
+        "name": "Luma Ray",
         "emoji": "🎞",
-        "desc": "2-5 сек, лёгкая модель",
-        "model_id": "lightricks/ltx-video-0.9.5",
+        "desc": "5 сек, Luma AI",
+        "model_id": "luma/ray-3.2",
     },
 }
 

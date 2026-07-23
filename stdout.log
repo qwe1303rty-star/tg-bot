@@ -8,3 +8,23 @@ INFO:bot.services.ai_providers.registry:AI provider registered: flux
 INFO:__main__:Bot started. Providers: ['stub', 'pollinations', 'replicate_video', 'dalle', 'stability', 'flux']. Chat API: configured
 INFO:aiogram.dispatcher:Start polling
 INFO:aiogram.dispatcher:Run polling for bot @lapka_ai_bot id=8939570124 - 'Лапка ИИ - CHATGPT | SORA 2| CLAUDE'
+INFO:aiogram.event:Update id=417856377 is handled. Duration 630 ms by bot id=8939570124
+INFO:aiogram.event:Update id=417856378 is handled. Duration 177 ms by bot id=8939570124
+INFO:bot.services.ai_providers.replicate_video:ReplicateVideo: creating prediction model=wan-video/wan-2.1, prompt=кот играет в футбол...
+ERROR:bot.services.ai_providers.replicate_video:ReplicateVideo: create HTTP 404 after 0.9s: {"detail":"The requested resource could not be found.","status":404}
+
+ERROR:bot.handlers.video:Video generation failed: Replicate API error 404: {"detail":"The requested resource could not be found.","status":404}
+Traceback (most recent call last):
+  File "C:\Users\Директ Лайн\Desktop\tg bot\bot\handlers\video.py", line 141, in handle_video_prompt
+    video_bytes = await provider_obj.generate(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "C:\Users\Директ Лайн\Desktop\tg bot\bot\services\ai_providers\replicate_video.py", line 95, in generate
+    raise RuntimeError(
+        f"Replicate API error {response.status}: {error[:300]}"
+    )
+RuntimeError: Replicate API error 404: {"detail":"The requested resource could not be found.","status":404}
+
+INFO:aiogram.event:Update id=417856379 is handled. Duration 1377 ms by bot id=8939570124

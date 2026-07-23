@@ -1,0 +1,14 @@
+INFO:__main__:Bot starting...
+INFO:bot.services.ai_providers.registry:AI provider registered: stub
+INFO:bot.services.ai_providers.registry:AI provider registered: pollinations
+INFO:bot.services.ai_providers.registry:AI provider registered: replicate_video
+INFO:bot.services.ai_providers.registry:AI provider registered: dalle
+INFO:bot.services.ai_providers.registry:AI provider registered: stability
+INFO:bot.services.ai_providers.registry:AI provider registered: flux
+INFO:__main__:Bot started. Providers: ['stub', 'pollinations', 'replicate_video', 'dalle', 'stability', 'flux']. Chat API: configured
+INFO:aiogram.dispatcher:Start polling
+INFO:aiogram.dispatcher:Run polling for bot @lapka_ai_bot id=8939570124 - 'À‡ÔÍ‡ »» - CHATGPT | SORA 2| CLAUDE'
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8939570124)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.560816 seconds and try again... (tryings = 1, bot id = 8939570124)

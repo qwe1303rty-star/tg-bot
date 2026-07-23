@@ -22,20 +22,20 @@ PROVIDER_INFO = {
 }
 
 VIDEO_PROVIDER_INFO = {
-    "wan": {
-        "name": "Wan 2.1",
-        "emoji": "🎬",
-        "description": "5-10 сек, высокое качество",
-    },
-    "minimax": {
-        "name": "MiniMax",
+    "grok": {
+        "name": "Grok Imagine",
         "emoji": "⚡",
-        "description": "5 сек, быстрая генерация",
+        "description": "6-30 сек, бюджетное",
     },
-    "ltx": {
-        "name": "LTX Video",
-        "emoji": "🎞",
-        "description": "2-5 сек, лёгкая модель",
+    "seedance": {
+        "name": "Seedance 2.0",
+        "emoji": "✨",
+        "description": "5-10 сек,高质量",
+    },
+    "veo": {
+        "name": "Veo 3.1",
+        "emoji": "🎬",
+        "description": "1080p, Google DeepMind",
     },
 }
 
