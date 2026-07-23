@@ -25,7 +25,7 @@ def _is_admin(user_id: int) -> bool:
     return user_id in settings.admin_ids
 
 
-@router.message(F.text == "📊 Статистика")
+@router.message(lambda m: m.text == "📊 Статистика")
 async def cmd_admin_stats(message: Message, session) -> None:
     if not _is_admin(message.from_user.id):
         return
@@ -276,7 +276,7 @@ async def cb_admin_history_nav(callback: CallbackQuery, session) -> None:
     await callback.answer()
 
 
-@router.message(F.text.startswith("/give_credits"))
+@router.message(lambda m: m.text and m.text.startswith("/give_credits"))
 async def cmd_give_credits(message: Message, session) -> None:
     logger.info("give_credits command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
 
@@ -314,7 +314,7 @@ async def cmd_give_credits(message: Message, session) -> None:
     )
 
 
-@router.message(F.text.startswith("/test_sheets"))
+@router.message(lambda m: m.text and m.text.startswith("/test_sheets"))
 async def cmd_test_sheets(message: Message) -> None:
     logger.info("test_sheets command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
 
