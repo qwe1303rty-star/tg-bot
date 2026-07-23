@@ -22,6 +22,7 @@ from bot.handlers.start import router as start_router
 from bot.handlers.video import router as video_router
 from bot.handlers.video_models import router as video_models_router
 from bot.middlewares.db import DatabaseMiddleware
+from bot.middlewares.debug import DebugMiddleware
 from bot.services.ai_providers.dalle import DalleProvider
 from bot.services.ai_providers.flux import FluxProvider
 from bot.services.ai_providers.pollinations import PollinationsProvider
@@ -78,6 +79,7 @@ async def main() -> None:
     dp.shutdown.register(on_shutdown)
 
     db_middleware = DatabaseMiddleware()
+    debug_middleware = DebugMiddleware()
     for r in [
         start_router,
         admin_router,
@@ -93,6 +95,9 @@ async def main() -> None:
     ]:
         r.message.middleware(db_middleware)
         r.callback_query.middleware(db_middleware)
+
+    # Debug middleware only for admin router to see what messages it receives
+    admin_router.message.middleware(debug_middleware)
 
     dp.include_routers(
         start_router,
