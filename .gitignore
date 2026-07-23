@@ -10,3 +10,4 @@ Thumbs.db
 dist/
 build/
 .pytest_cache/
+.github/
