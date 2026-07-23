@@ -353,3 +353,8 @@ async def cmd_test_sheets(message: Message) -> None:
             "2. Apps Script задеплоен как 'Все'?\n"
             "3. В Apps Script есть функция doPost?"
         )
+
+
+@router.message(lambda m: m.text and m.text.startswith("/") and m.text != "/start")
+async def debug_catch_all(message: Message) -> None:
+    logger.info("ADMIN CATCH-ALL: text=%s from_user=%s", message.text, message.from_user.id)
