@@ -46,9 +46,10 @@ async def on_startup() -> None:
 
     chat_ok = bool(settings.openrouter_api_key)
     logger.info(
-        "Bot started. Providers: %s. Chat API: %s",
+        "Bot started. Providers: %s. Chat API: %s. Admin IDs: %s",
         ProviderRegistry.list_providers(),
         "configured" if chat_ok else "no key",
+        settings.admin_ids,
     )
 
 
