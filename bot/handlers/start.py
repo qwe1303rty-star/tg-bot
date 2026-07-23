@@ -1,6 +1,6 @@
 from aiogram import Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 
 from bot.database.repositories.user import UserRepository
 from bot.keyboards.main import get_main_keyboard
@@ -56,4 +56,5 @@ async def cmd_start(message: Message, session) -> None:
             "Нажмите 🎨 <b>Создать фото</b> или 🎬 <b>Создать видео</b>, чтобы начать."
         )
 
+    await message.answer(".", reply_markup=ReplyKeyboardRemove())
     await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))
