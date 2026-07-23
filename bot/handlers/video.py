@@ -70,7 +70,7 @@ async def btn_video(message: Message, state: FSMContext, session) -> None:
                 "⚠️ Лимит генераций видео на сегодня исчерпан "
                 f"({user.video_daily_limit}/день).\n\n"
                 "⭐ Купите <b>Премиум</b> для безлимита!",
-                reply_markup=get_main_keyboard(),
+                reply_markup=get_main_keyboard(message.from_user.id),
             )
             return
 
@@ -88,7 +88,7 @@ async def callback_cancel_video(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text("Генерация видео отменена.")
     await callback.message.answer(
-        "Выберите действие:", reply_markup=get_main_keyboard()
+        "Выберите действие:", reply_markup=get_main_keyboard(callback.from_user.id)
     )
     await callback.answer()
 
@@ -113,7 +113,7 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
     user = await user_repo.get_by_telegram_id(message.from_user.id)
 
     if not user:
-        await message.answer("Отправьте /start", reply_markup=get_main_keyboard())
+        await message.answer("Отправьте /start", reply_markup=get_main_keyboard(message.from_user.id))
         return
 
     provider_key = user.selected_video_provider
@@ -189,7 +189,7 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
         except Exception:
             pass
         await message.answer(
-            "Выберите действие:", reply_markup=get_main_keyboard()
+            "Выберите действие:", reply_markup=get_main_keyboard(message.from_user.id)
         )
     finally:
         if not timer_task.done():
@@ -302,7 +302,7 @@ async def callback_repeat_video(callback: CallbackQuery, session):
         except Exception:
             pass
         await callback.message.answer(
-            "Выберите действие:", reply_markup=get_main_keyboard()
+            "Выберите действие:", reply_markup=get_main_keyboard(callback.from_user.id)
         )
     finally:
         if not timer_task.done():

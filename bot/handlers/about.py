@@ -36,4 +36,4 @@ ABOUT_TEXT = (
 
 @router.message(lambda m: m.text == "ℹ️ О боте")
 async def btn_about(message: Message) -> None:
-    await message.answer(ABOUT_TEXT, reply_markup=get_main_keyboard())
+    await message.answer(ABOUT_TEXT, reply_markup=get_main_keyboard(message.from_user.id))

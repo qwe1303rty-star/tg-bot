@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,9 +28,21 @@ class Settings(BaseSettings):
     kie_api_key: str = ""
     chat_model: str = "google/gemini-2.5-flash"
     proxy_url: str = ""
+    admin_ids: list[int] = []
 
     default_ai_provider: str = "dalle"
     media_path: Path = Path("./media/generated")
+
+    @field_validator("admin_ids", mode="before")
+    @classmethod
+    def parse_admin_ids(cls, v):
+        if isinstance(v, list):
+            return [int(x) for x in v]
+        if isinstance(v, int):
+            return [v]
+        if isinstance(v, str) and v.strip():
+            return [int(x.strip()) for x in v.split(",") if x.strip()]
+        return []
 
 
 @lru_cache

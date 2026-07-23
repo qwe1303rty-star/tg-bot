@@ -17,7 +17,7 @@ async def cmd_profile(message: Message, session) -> None:
     if not user:
         await message.answer(
             "❌ Профиль не найден. Отправьте /start",
-            reply_markup=get_main_keyboard(),
+            reply_markup=get_main_keyboard(message.from_user.id),
         )
         return
 
@@ -45,4 +45,4 @@ async def cmd_profile(message: Message, session) -> None:
         f"📋 Статус: {user.status}"
     )
 
-    await message.answer(text, reply_markup=get_main_keyboard())
+    await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))

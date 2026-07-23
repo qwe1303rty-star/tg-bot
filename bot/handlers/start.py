@@ -56,4 +56,4 @@ async def cmd_start(message: Message, session) -> None:
             "Нажмите 🎨 <b>Создать фото</b> или 🎬 <b>Создать видео</b>, чтобы начать."
         )
 
-    await message.answer(text, reply_markup=get_main_keyboard())
+    await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))

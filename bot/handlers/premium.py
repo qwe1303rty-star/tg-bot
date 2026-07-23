@@ -18,4 +18,4 @@ async def btn_premium(message: Message) -> None:
         "• Генерация в HD качестве\n\n"
         "Следите за обновлениями!"
     )
-    await message.answer(text, reply_markup=get_main_keyboard())
+    await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))

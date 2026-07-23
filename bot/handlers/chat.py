@@ -29,7 +29,7 @@ async def btn_exit_chat(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(
         "💬 Чат завершён.",
-        reply_markup=get_main_keyboard(),
+        reply_markup=get_main_keyboard(message.from_user.id),
     )
 
 

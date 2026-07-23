@@ -61,7 +61,7 @@ async def btn_generate(message: Message, state: FSMContext, session) -> None:
                 "⚠️ Лимит генераций на сегодня исчерпан "
                 f"({user.daily_limit}/день).\n\n"
                 "⭐ Купите <b>Премиум</b> для безлимита!",
-                reply_markup=get_main_keyboard(),
+                reply_markup=get_main_keyboard(message.from_user.id),
             )
             return
 
@@ -79,7 +79,7 @@ async def callback_cancel(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text("Генерация отменена.")
     await callback.message.answer(
-        "Выберите действие:", reply_markup=get_main_keyboard()
+        "Выберите действие:", reply_markup=get_main_keyboard(callback.from_user.id)
     )
     await callback.answer()
 
@@ -104,7 +104,7 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
     user = await user_repo.get_by_telegram_id(message.from_user.id)
 
     if not user:
-        await message.answer("Отправьте /start", reply_markup=get_main_keyboard())
+        await message.answer("Отправьте /start", reply_markup=get_main_keyboard(message.from_user.id))
         return
 
     provider_key = user.selected_provider
@@ -179,7 +179,7 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
         except Exception:
             pass
         await message.answer(
-            "Выберите действие:", reply_markup=get_main_keyboard()
+            "Выберите действие:", reply_markup=get_main_keyboard(message.from_user.id)
         )
     finally:
         if timer_task:
@@ -290,7 +290,7 @@ async def callback_repeat(callback: CallbackQuery, session):
         except Exception:
             pass
         await callback.message.answer(
-            "Выберите действие:", reply_markup=get_main_keyboard()
+            "Выберите действие:", reply_markup=get_main_keyboard(callback.from_user.id)
         )
     finally:
         if timer_task:

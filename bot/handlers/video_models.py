@@ -35,7 +35,7 @@ async def btn_video_models(message: Message, session) -> None:
     user = await repo.get_by_telegram_id(message.from_user.id)
 
     if not user:
-        await message.answer("Отправьте /start", reply_markup=get_main_keyboard())
+        await message.answer("Отправьте /start", reply_markup=get_main_keyboard(message.from_user.id))
         return
 
     current = user.selected_video_provider

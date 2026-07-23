@@ -10,6 +10,7 @@ from aiogram.enums import ParseMode
 from bot.config import settings
 from bot.database.engine import Base, engine
 from bot.handlers.about import router as about_router
+from bot.handlers.admin import router as admin_router
 from bot.handlers.chat import router as chat_router
 from bot.handlers.generate import router as generate_router
 from bot.handlers.models import router as models_router
@@ -79,6 +80,7 @@ async def main() -> None:
         premium_router,
         chat_router,
         about_router,
+        admin_router,
     ]:
         r.message.middleware(db_middleware)
         r.callback_query.middleware(db_middleware)
@@ -93,6 +95,7 @@ async def main() -> None:
         premium_router,
         chat_router,
         about_router,
+        admin_router,
     )
 
     dp["bot"] = bot
