@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)
 
 async def on_startup() -> None:
     settings.media_path.mkdir(parents=True, exist_ok=True)
+    db_dir = settings.db_url.split("///")[-1].rsplit("/", 1)[0] if "///" in settings.db_url else ""
+    if db_dir:
+        from pathlib import Path
+        Path(db_dir).mkdir(parents=True, exist_ok=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
