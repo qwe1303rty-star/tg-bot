@@ -2,6 +2,7 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
+from bot.database.repositories.credits import CreditsRepository
 from bot.database.repositories.user import UserRepository
 from bot.keyboards.main import get_main_keyboard
 
@@ -10,25 +11,25 @@ router = Router(name="start")
 WELCOME_TEXT = (
     "👋 Привет, {name}!\n\n"
     "🎨 <b>Лапка</b> — ИИ-бот для создания картинок и видео.\n\n"
-    "Отправьте описание — и я сгенерирую изображение или видео!\n\n"
     "━━━━━━━━━━━━━━━━━━\n\n"
     "🆓 <b>Бесплатно:</b>\n"
-    "📸 Картинки: 10/день\n"
-    "🎬 Видео: 10/день\n\n"
-    "🎨 Модели картинок:\n"
-    "⚡ Pollinations (Flux/SD)\n"
-    "🖼 DALL-E 3\n"
-    "🎨 Stability AI\n\n"
-    "🎬 Модели видео:\n"
-    "⚡ Grok Imagine\n"
-    "✨ Seedance 2.0\n"
-    "🎬 Veo 3.1\n\n"
+    "📸 Картинки Pollinations — безлимит\n"
+    "🎰 Кейс — 1 раз/день\n\n"
+    "💰 <b>Платные генерации:</b>\n"
+    "🖼 GPT Image / Nano Banana\n"
+    "🎬 Grok / Seedance / Kling / Veo\n\n"
     "━━━━━━━━━━━━━━━━━━\n\n"
     "⬇️ <b>Как пользоваться?</b>\n"
     "Нажмите 🎨 <b>Создать фото</b> или 🎬 <b>Создать видео</b>.\n\n"
-    "🤖 Выберите модель — 🤖 <b>Выбрать модель</b>\n"
-    "🎬 Видео-модели — 🎬 <b>Выбрать видео-модель</b>\n"
-    "👤 Профиль — 👤 <b>Профиль</b>"
+    "🎰 Испытай удачу — ежедневный бонус\n"
+    "💰 Кредиты — купить кредиты\n"
+    "👤 Профиль — баланс и настройки"
+)
+
+WELCOME_BACK_TEXT = (
+    "👋 С возвращением, {name}!\n\n"
+    "💰 Кредитов: {credits}\n\n"
+    "Нажмите 🎨 <b>Создать фото</b> или 🎬 <b>Создать видео</b>, чтобы начать."
 )
 
 
@@ -42,18 +43,33 @@ async def cmd_start(message: Message, session) -> None:
         last_name=message.from_user.last_name,
     )
 
+    args = message.text.split()
+    if len(args) > 1 and args[1].startswith("ref_"):
+        try:
+            referrer_id = int(args[1][4:])
+            if referrer_id != message.from_user.id and not user.referred_by:
+                user.referred_by = referrer_id
+                await session.commit()
+
+                credits_repo = CreditsRepository(session)
+                await credits_repo.add_credits(
+                    message.from_user.id, 20,
+                    tx_type="referral",
+                    description=f"Реферал: +20 от {referrer_id}",
+                )
+                await credits_repo.add_credits(
+                    referrer_id, 10,
+                    tx_type="referral",
+                    description=f"Реферал: +10 от {message.from_user.id}",
+                )
+        except (ValueError, IndexError):
+            pass
+
     name = message.from_user.first_name or "друг"
 
     if is_new:
         text = WELCOME_TEXT.format(name=name)
     else:
-        text = (
-            f"👋 С возвращением, {name}!\n\n"
-            f"🎨 Модель картинок: {user.selected_provider}\n"
-            f"📸 Сегодня: {user.generations_today}/{user.daily_limit}\n\n"
-            f"🎬 Модель видео: {user.selected_video_provider}\n"
-            f"🎥 Сегодня видео: {user.video_generations_today}/{user.video_daily_limit}\n\n"
-            "Нажмите 🎨 <b>Создать фото</b> или 🎬 <b>Создать видео</b>, чтобы начать."
-        )
+        text = WELCOME_BACK_TEXT.format(name=name, credits=user.credits)
 
     await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))

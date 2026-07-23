@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     default_ai_provider: str = "dalle"
     media_path: Path = Path("/data/media/generated")
+    google_sheets_url: str = ""
 
     @property
     def admin_ids(self) -> list[int]:

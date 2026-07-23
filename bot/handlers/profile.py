@@ -35,14 +35,19 @@ async def cmd_profile(message: Message, session) -> None:
         f"📛 Имя: {name}\n"
         f"🔗 Username: {username}\n"
         f"🆔 ID: <code>{user.telegram_id}</code>\n"
-        f"📅 Регистрация: {reg_date}\n"
-        f"🖼 Всего генераций: {count}\n\n"
+        f"📅 Регистрация: {reg_date}\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
+        f"💰 Кредитов: {user.credits}\n\n"
         f"━━━━━━━━━━━━━━━━━━\n\n"
         f"🎨 Модель картинок: {provider_display}\n"
         f"📸 Сегодня картинок: {user.generations_today}/{user.daily_limit}\n\n"
         f"🎬 Модель видео: {user.selected_video_provider}\n"
         f"🎥 Сегодня видео: {user.video_generations_today}/{user.video_daily_limit}\n\n"
-        f"📋 Статус: {user.status}"
+        f"🖼 Всего генераций: {count}\n"
+        f"📋 Статус: {user.status}\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
+        f"🔗 Реферальная ссылка:\n"
+        f"<code>https://t.me/lapka_ai_bot?start=ref_{user.telegram_id}</code>"
     )
 
     await message.answer(text, reply_markup=get_main_keyboard(message.from_user.id))

@@ -9,9 +9,11 @@ from aiogram.enums import ParseMode
 
 from bot.config import settings
 from bot.database.engine import Base, engine
+from bot.services.google_sheets import GoogleSheetsService
 from bot.handlers.about import router as about_router
 from bot.handlers.admin import router as admin_router
-from bot.handlers.chat import router as chat_router
+from bot.handlers.case import router as case_router
+from bot.handlers.credits import router as credits_router
 from bot.handlers.generate import router as generate_router
 from bot.handlers.models import router as models_router
 from bot.handlers.premium import router as premium_router
@@ -48,12 +50,13 @@ async def on_startup() -> None:
     ProviderRegistry.register(StabilityProvider())
     ProviderRegistry.register(FluxProvider())
 
-    chat_ok = bool(settings.openrouter_api_key)
+    sheets_service = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+
     logger.info(
-        "Bot started. Providers: %s. Chat API: %s. Admin IDs: %s",
+        "Bot started. Providers: %s. Admin IDs: %s. Sheets: %s",
         ProviderRegistry.list_providers(),
-        "configured" if chat_ok else "no key",
         settings.admin_ids,
+        bool(settings.google_sheets_url),
     )
 
 
@@ -84,7 +87,8 @@ async def main() -> None:
         models_router,
         video_models_router,
         premium_router,
-        chat_router,
+        case_router,
+        credits_router,
         about_router,
     ]:
         r.message.middleware(db_middleware)
@@ -99,11 +103,13 @@ async def main() -> None:
         models_router,
         video_models_router,
         premium_router,
-        chat_router,
+        case_router,
+        credits_router,
         about_router,
     )
 
     dp["bot"] = bot
+    dp["sheets"] = GoogleSheetsService(webhook_url=settings.google_sheets_url)
 
     logger.info("Bot starting...")
     try:

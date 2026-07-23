@@ -8,18 +8,32 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
 from bot.config import settings
+from bot.database.repositories.credits import CreditsRepository
 from bot.database.repositories.generation import GenerationRepository
 from bot.database.repositories.user import UserRepository
 from bot.handlers.states import VideoState
 from bot.keyboards.generation import get_cancel_keyboard, get_video_keyboard
 from bot.keyboards.main import get_main_keyboard
 from bot.services.ai_providers.kie_video import KIE_VIDEO_MODELS, KieVideoProvider
+from bot.services.google_sheets import GoogleSheetsService
 
 logger = logging.getLogger(__name__)
 
 router = Router(name="video")
 
-IGNORED_BUTTONS_VIDEO = ("🎨", "💬", "🤖", "👤", "⭐", "ℹ️", "🎬")
+IGNORED_BUTTONS_VIDEO = ("🎨", "💬", "🤖", "👤", "⭐", "ℹ️", "🎬", "🎰", "💰")
+
+VIDEO_CREDIT_COSTS = {
+    "grok": 10,
+    "seedance": 69,
+    "veo": 256,
+}
+
+KIE_CREDIT_COSTS = {
+    "grok": 10.0,
+    "seedance": 69.0,
+    "veo": 307.0,
+}
 
 
 def _video_progress_bar(pct: int) -> str:
@@ -58,26 +72,42 @@ async def btn_video(message: Message, state: FSMContext, session) -> None:
     repo = UserRepository(session)
     user = await repo.get_by_telegram_id(message.from_user.id)
 
-    if user and not user.is_premium:
-        today = date.today()
-        if user.last_video_generation_date != today:
-            user.video_generations_today = 0
-            user.last_video_generation_date = today
-            await session.commit()
+    if not user:
+        await message.answer("Отправьте /start", reply_markup=get_main_keyboard(message.from_user.id))
+        return
 
-        if user and user.video_generations_today >= user.video_daily_limit:
-            await message.answer(
-                "⚠️ Лимит генераций видео на сегодня исчерпан "
-                f"({user.video_daily_limit}/день).\n\n"
-                "⭐ Купите <b>Премиум</b> для безлимита!",
-                reply_markup=get_main_keyboard(message.from_user.id),
-            )
-            return
+    today = date.today()
+    if user.last_video_generation_date != today:
+        user.video_generations_today = 0
+        user.last_video_generation_date = today
+        await session.commit()
+
+    if user.video_generations_today >= user.video_daily_limit:
+        await message.answer(
+            "⚠️ Лимит генераций видео на сегодня исчерпан "
+            f"({user.video_daily_limit}/день).\n\n"
+            "💰 Купите кредиты для продолжения!",
+            reply_markup=get_main_keyboard(message.from_user.id),
+        )
+        return
+
+    credits_repo = CreditsRepository(session)
+    cost = VIDEO_CREDIT_COSTS.get(user.selected_video_provider, 10)
+    if not await credits_repo.has_enough(message.from_user.id, cost):
+        await message.answer(
+            f"❌ Недостаточно кредитов!\n"
+            f"Нужно: {cost} кредитов\n"
+            f"У вас: {user.credits} кредитов\n\n"
+            "💰 Купите кредиты для продолжения.",
+            reply_markup=get_main_keyboard(message.from_user.id),
+        )
+        return
 
     await state.set_state(VideoState.waiting_prompt)
     await message.answer(
         "🎬 Опишите видео, которое хотите получить.\n\n"
         'Например: <i>"Закат над океаном, таймлапс, 5 секунд"</i>\n\n'
+        f"💰 Стоимость: {cost} кредитов\n\n"
         "❌ Для отмены нажмите кнопку ниже.",
         reply_markup=get_cancel_keyboard("cancel_video"),
     )
@@ -120,6 +150,9 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
     model_info = KIE_VIDEO_MODELS.get(provider_key, KIE_VIDEO_MODELS["grok"])
     provider_display = f"{model_info['emoji']} {model_info['name']}"
 
+    credits_repo = CreditsRepository(session)
+    cost = VIDEO_CREDIT_COSTS.get(provider_key, 10)
+
     start = time.time()
     provider_obj = KieVideoProvider(api_key=settings.kie_api_key)
     loading_msg = await message.answer(
@@ -140,6 +173,8 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
             model=provider_key,
         )
 
+        await credits_repo.spend_credits(message.from_user.id, cost)
+
         gen_repo = GenerationRepository(session)
         generation = await gen_repo.create(
             user_id=user.id,
@@ -152,6 +187,17 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
         user.last_video_generation_date = date.today()
         await session.commit()
 
+        kie_used = KIE_CREDIT_COSTS.get(provider_key, 10.0)
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            type_label="Видео",
+            model=provider_key,
+            kie_credits=kie_used,
+            tg_credits=cost,
+        ))
+
         elapsed = int(time.time() - start)
         timer_task.cancel()
         try:
@@ -161,14 +207,14 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
 
         await loading_msg.delete()
 
+        new_balance = await credits_repo.get_balance(message.from_user.id)
         video_file = BufferedInputFile(video_bytes, filename="video.mp4")
-        left = user.video_generations_left
         caption = (
             f"🎬 <b>Видео #{generation.id}</b>\n\n"
             f"📝 Промпт: <i>{prompt}</i>\n"
             f"🤖 Модель: {provider_display}\n"
             f"⏱ Время: {elapsed} сек\n"
-            f"📊 Осталось: {left}/{user.video_daily_limit}"
+            f"💰 Баланс: {new_balance} кредитов"
         )
 
         await message.answer_video(
@@ -179,6 +225,16 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
 
     except Exception as e:
         logger.exception("Video generation failed: %s", e)
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            type_label="Видео",
+            model=provider_key,
+            kie_credits=0,
+            tg_credits=0,
+            status="Ошибка",
+        ))
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(
@@ -213,18 +269,25 @@ async def callback_repeat_video(callback: CallbackQuery, session):
     user_repo = UserRepository(session)
     user = await user_repo.get_by_telegram_id(callback.from_user.id)
 
-    if user and not user.is_premium:
-        today = date.today()
-        if user.last_video_generation_date != today:
-            user.video_generations_today = 0
-            user.last_video_generation_date = today
-            await session.commit()
+    if not user:
+        await callback.answer("Пользователь не найден", show_alert=True)
+        return
 
-        if user and user.video_generations_today >= user.video_daily_limit:
-            await callback.answer(
-                "Лимит генераций видео на сегодня исчерпан", show_alert=True
-            )
-            return
+    today = date.today()
+    if user.last_video_generation_date != today:
+        user.video_generations_today = 0
+        user.last_video_generation_date = today
+        await session.commit()
+
+    if user.video_generations_today >= user.video_daily_limit:
+        await callback.answer("Лимит генераций видео на сегодня исчерпан", show_alert=True)
+        return
+
+    credits_repo = CreditsRepository(session)
+    cost = VIDEO_CREDIT_COSTS.get(generation.provider, 10)
+    if not await credits_repo.has_enough(callback.from_user.id, cost):
+        await callback.answer("Недостаточно кредитов", show_alert=True)
+        return
 
     await callback.answer()
 
@@ -256,6 +319,8 @@ async def callback_repeat_video(callback: CallbackQuery, session):
             model=provider_key,
         )
 
+        await credits_repo.spend_credits(callback.from_user.id, cost)
+
         new_gen = await gen_repo.create(
             user_id=generation.user_id,
             prompt=generation.prompt,
@@ -268,6 +333,17 @@ async def callback_repeat_video(callback: CallbackQuery, session):
             user.last_video_generation_date = date.today()
             await session.commit()
 
+        kie_used = KIE_CREDIT_COSTS.get(provider_key, 10.0)
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=callback.from_user.id,
+            username=callback.from_user.username,
+            type_label="Видео",
+            model=provider_key,
+            kie_credits=kie_used,
+            tg_credits=cost,
+        ))
+
         elapsed = int(time.time() - start)
         timer_task.cancel()
         try:
@@ -277,7 +353,7 @@ async def callback_repeat_video(callback: CallbackQuery, session):
 
         await loading_msg.delete()
 
-        left = user.video_generations_left if user else "?"
+        new_balance = await credits_repo.get_balance(callback.from_user.id)
         video_file = BufferedInputFile(video_bytes, filename="video.mp4")
         await callback.message.answer_video(
             video=video_file,
@@ -286,13 +362,23 @@ async def callback_repeat_video(callback: CallbackQuery, session):
                 f"📝 Промпт: <i>{clean_prompt}</i>\n"
                 f"🤖 Модель: {provider_display}\n"
                 f"⏱ Время: {elapsed} сек\n"
-                f"📊 Осталось: {left}/{user.video_daily_limit if user else '?'}"
+                f"💰 Баланс: {new_balance} кредитов"
             ),
             reply_markup=get_video_keyboard(new_gen.id),
         )
 
     except Exception as e:
         logger.exception("Repeat video generation failed: %s", e)
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=callback.from_user.id,
+            username=callback.from_user.username,
+            type_label="Видео",
+            model=provider_key,
+            kie_credits=0,
+            tg_credits=0,
+            status="Ошибка",
+        ))
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(

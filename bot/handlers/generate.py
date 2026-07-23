@@ -7,19 +7,28 @@ from aiogram import Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
+from bot.database.repositories.credits import CreditsRepository
 from bot.database.repositories.generation import GenerationRepository
 from bot.database.repositories.user import UserRepository
 from bot.handlers.states import GenerateState
 from bot.keyboards.generation import get_cancel_keyboard, get_generation_keyboard
 from bot.keyboards.main import get_main_keyboard
 from bot.services.ai_providers.info import PROVIDER_INFO
+from bot.services.google_sheets import GoogleSheetsService
 from bot.services.image import generate_image
 
 logger = logging.getLogger(__name__)
 
 router = Router(name="generate")
 
-IGNORED_BUTTONS = ("🎨", "💬", "🤖", "👤", "⭐", "ℹ️", "🎬")
+IGNORED_BUTTONS = ("🎨", "💬", "🤖", "👤", "⭐", "ℹ️", "🎬", "🎰", "💰")
+
+IMAGE_CREDIT_COSTS = {
+    "pollinations": 0,
+    "dalle": 6,
+    "stability": 6,
+    "flux": 6,
+}
 
 
 def _progress_bar(pct: int) -> str:
@@ -49,26 +58,42 @@ async def btn_generate(message: Message, state: FSMContext, session) -> None:
     repo = UserRepository(session)
     user = await repo.get_by_telegram_id(message.from_user.id)
 
-    if user and not user.is_premium:
-        today = date.today()
-        if user.last_generation_date != today:
-            user.generations_today = 0
-            user.last_generation_date = today
-            await session.commit()
+    if not user:
+        await message.answer("Отправьте /start", reply_markup=get_main_keyboard(message.from_user.id))
+        return
 
-        if user and user.generations_today >= user.daily_limit:
-            await message.answer(
-                "⚠️ Лимит генераций на сегодня исчерпан "
-                f"({user.daily_limit}/день).\n\n"
-                "⭐ Купите <b>Премиум</b> для безлимита!",
-                reply_markup=get_main_keyboard(message.from_user.id),
-            )
-            return
+    today = date.today()
+    if user.last_generation_date != today:
+        user.generations_today = 0
+        user.last_generation_date = today
+        await session.commit()
+
+    if user.generations_today >= user.daily_limit:
+        await message.answer(
+            "⚠️ Лимит генераций на сегодня исчерпан "
+            f"({user.daily_limit}/день).\n\n"
+            "💰 Купите кредиты для продолжения!",
+            reply_markup=get_main_keyboard(message.from_user.id),
+        )
+        return
+
+    credits_repo = CreditsRepository(session)
+    cost = IMAGE_CREDIT_COSTS.get(user.selected_provider, 6)
+    if cost > 0 and not await credits_repo.has_enough(message.from_user.id, cost):
+        await message.answer(
+            f"❌ Недостаточно кредитов!\n"
+            f"Нужно: {cost} кредитов\n"
+            f"У вас: {user.credits} кредитов\n\n"
+            "💰 Купите кредиты для продолжения.",
+            reply_markup=get_main_keyboard(message.from_user.id),
+        )
+        return
 
     await state.set_state(GenerateState.waiting_prompt)
     await message.answer(
         "Опишите изображение, которое хотите получить.\n\n"
         'Например: <i>"Кот-космонавт на фоне Луны, цифровая живопись"</i>\n\n'
+        f"💰 Стоимость: {cost} кредитов\n\n"
         "❌ Для отмены нажмите кнопку ниже.",
         reply_markup=get_cancel_keyboard(),
     )
@@ -111,6 +136,9 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
     provider_info = PROVIDER_INFO.get(provider_key, {})
     provider_display = f"{provider_info.get('emoji', '')} {provider_info.get('name', provider_key)}"
 
+    credits_repo = CreditsRepository(session)
+    cost = IMAGE_CREDIT_COSTS.get(provider_key, 6)
+
     start = time.time()
     loading_msg = await message.answer(
         f"⏳ Генерирую изображение...\n"
@@ -136,6 +164,9 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
             prompt, provider_name=provider_key
         )
 
+        if cost > 0:
+            await credits_repo.spend_credits(message.from_user.id, cost)
+
         gen_repo = GenerationRepository(session)
         generation = await gen_repo.create(
             user_id=user.id,
@@ -148,17 +179,28 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
         user.last_generation_date = date.today()
         await session.commit()
 
+        from bot.config import settings
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            type_label="Фото",
+            model=provider_name,
+            kie_credits=0,
+            tg_credits=cost,
+        ))
+
         elapsed = int(time.time() - start)
         await loading_msg.delete()
 
+        new_balance = await credits_repo.get_balance(message.from_user.id)
         photo = BufferedInputFile(image_bytes, filename="photo.jpg")
-        left = user.generations_left
         caption = (
             f"🖼 <b>Генерация #{generation.id}</b>\n\n"
             f"📝 Промпт: <i>{prompt}</i>\n"
             f"🤖 Модель: {provider_display}\n"
             f"⏱ Время: {elapsed} сек\n"
-            f"📊 Осталось: {left}/{user.daily_limit}"
+            f"💰 Баланс: {new_balance} кредитов"
         )
 
         await message.answer_photo(
@@ -169,6 +211,17 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
 
     except Exception as e:
         logger.exception("Generation failed: %s", e)
+        from bot.config import settings
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            type_label="Фото",
+            model=provider_key,
+            kie_credits=0,
+            tg_credits=0,
+            status="Ошибка",
+        ))
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(
@@ -203,18 +256,25 @@ async def callback_repeat(callback: CallbackQuery, session):
     user_repo = UserRepository(session)
     user = await user_repo.get_by_telegram_id(callback.from_user.id)
 
-    if user and not user.is_premium:
-        today = date.today()
-        if user.last_generation_date != today:
-            user.generations_today = 0
-            user.last_generation_date = today
-            await session.commit()
+    if not user:
+        await callback.answer("Пользователь не найден", show_alert=True)
+        return
 
-        if user and user.generations_today >= user.daily_limit:
-            await callback.answer(
-                "Лимит генераций на сегодня исчерпан", show_alert=True
-            )
-            return
+    today = date.today()
+    if user.last_generation_date != today:
+        user.generations_today = 0
+        user.last_generation_date = today
+        await session.commit()
+
+    if user.generations_today >= user.daily_limit:
+        await callback.answer("Лимит генераций на сегодня исчерпан", show_alert=True)
+        return
+
+    credits_repo = CreditsRepository(session)
+    cost = IMAGE_CREDIT_COSTS.get(generation.provider, 6)
+    if cost > 0 and not await credits_repo.has_enough(callback.from_user.id, cost):
+        await callback.answer("Недостаточно кредитов", show_alert=True)
+        return
 
     await callback.answer()
 
@@ -247,6 +307,9 @@ async def callback_repeat(callback: CallbackQuery, session):
             generation.prompt, provider_name=provider_key
         )
 
+        if cost > 0:
+            await credits_repo.spend_credits(callback.from_user.id, cost)
+
         new_gen = await gen_repo.create(
             user_id=generation.user_id,
             prompt=generation.prompt,
@@ -259,12 +322,23 @@ async def callback_repeat(callback: CallbackQuery, session):
             user.last_generation_date = date.today()
             await session.commit()
 
+        from bot.config import settings
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=callback.from_user.id,
+            username=callback.from_user.username,
+            type_label="Фото",
+            model=provider_name,
+            kie_credits=0,
+            tg_credits=cost,
+        ))
+
         elapsed = int(time.time() - start)
         await loading_msg.delete()
 
+        new_balance = await credits_repo.get_balance(callback.from_user.id)
         provider_info = PROVIDER_INFO.get(provider_name, {})
         provider_display = f"{provider_info.get('emoji', '')} {provider_info.get('name', provider_name)}"
-        left = user.generations_left if user else "?"
 
         photo = BufferedInputFile(image_bytes, filename="photo.jpg")
         await callback.message.answer_photo(
@@ -274,13 +348,24 @@ async def callback_repeat(callback: CallbackQuery, session):
                 f"📝 Промпт: <i>{generation.prompt}</i>\n"
                 f"🤖 Модель: {provider_display}\n"
                 f"⏱ Время: {elapsed} сек\n"
-                f"📊 Осталось: {left}/{user.daily_limit if user else '?'}"
+                f"💰 Баланс: {new_balance} кредитов"
             ),
             reply_markup=get_generation_keyboard(new_gen.id),
         )
 
     except Exception as e:
         logger.exception("Repeat generation failed: %s", e)
+        from bot.config import settings
+        sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+        asyncio.create_task(sheets.log_transaction(
+            telegram_id=callback.from_user.id,
+            username=callback.from_user.username,
+            type_label="Фото",
+            model=generation.provider,
+            kie_credits=0,
+            tg_credits=0,
+            status="Ошибка",
+        ))
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(

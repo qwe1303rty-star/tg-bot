@@ -10,12 +10,12 @@ def get_main_keyboard(user_id: int = 0) -> ReplyKeyboardMarkup:
             KeyboardButton(text="🎬 Создать видео"),
         ],
         [
-            KeyboardButton(text="💬 Чат с ИИ"),
+            KeyboardButton(text="🎰 Испытай удачу"),
             KeyboardButton(text="🤖 Выбрать модель"),
         ],
         [
             KeyboardButton(text="👤 Профиль"),
-            KeyboardButton(text="⭐ Премиум"),
+            KeyboardButton(text="💰 Кредиты"),
         ],
         [
             KeyboardButton(text="🎬 Выбрать видео-модель"),
