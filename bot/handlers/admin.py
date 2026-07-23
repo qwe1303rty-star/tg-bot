@@ -1,4 +1,5 @@
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
 import logging
@@ -16,6 +17,11 @@ from bot.keyboards.main import get_main_keyboard
 
 router = Router(name="admin")
 logger = logging.getLogger(__name__)
+
+# Debug: ловим все сообщения в admin_router
+@router.message()
+async def debug_all(message: Message) -> None:
+    logger.info("ADMIN ROUTER REACHED: text=%s user=%s", message.text, message.from_user.id)
 
 USERS_PER_PAGE = 10
 HISTORY_PER_PAGE = 10
@@ -276,7 +282,7 @@ async def cb_admin_history_nav(callback: CallbackQuery, session) -> None:
     await callback.answer()
 
 
-@router.message(lambda m: m.text and m.text.startswith("/give_credits"))
+@router.message(Command("give_credits"))
 async def cmd_give_credits(message: Message, session) -> None:
     logger.info("give_credits command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
 
@@ -314,7 +320,7 @@ async def cmd_give_credits(message: Message, session) -> None:
     )
 
 
-@router.message(lambda m: m.text and m.text.startswith("/test_sheets"))
+@router.message(Command("test_sheets"))
 async def cmd_test_sheets(message: Message) -> None:
     logger.info("test_sheets command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
 
@@ -353,8 +359,3 @@ async def cmd_test_sheets(message: Message) -> None:
             "2. Apps Script задеплоен как 'Все'?\n"
             "3. В Apps Script есть функция doPost?"
         )
-
-
-@router.message(lambda m: m.text and m.text.startswith("/") and m.text != "/start")
-async def debug_catch_all(message: Message) -> None:
-    logger.info("ADMIN CATCH-ALL: text=%s from_user=%s", message.text, message.from_user.id)
