@@ -189,14 +189,14 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
 
         kie_used = KIE_CREDIT_COSTS.get(provider_key, 10.0)
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=message.from_user.id,
             username=message.from_user.username,
             type_label="Видео",
             model=provider_key,
             kie_credits=kie_used,
             tg_credits=cost,
-        ))
+        )
 
         elapsed = int(time.time() - start)
         timer_task.cancel()
@@ -226,7 +226,7 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
     except Exception as e:
         logger.exception("Video generation failed: %s", e)
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=message.from_user.id,
             username=message.from_user.username,
             type_label="Видео",
@@ -234,7 +234,7 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
             kie_credits=0,
             tg_credits=0,
             status="Ошибка",
-        ))
+        )
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(
@@ -335,14 +335,14 @@ async def callback_repeat_video(callback: CallbackQuery, session):
 
         kie_used = KIE_CREDIT_COSTS.get(provider_key, 10.0)
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=callback.from_user.id,
             username=callback.from_user.username,
             type_label="Видео",
             model=provider_key,
             kie_credits=kie_used,
             tg_credits=cost,
-        ))
+        )
 
         elapsed = int(time.time() - start)
         timer_task.cancel()
@@ -370,7 +370,7 @@ async def callback_repeat_video(callback: CallbackQuery, session):
     except Exception as e:
         logger.exception("Repeat video generation failed: %s", e)
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=callback.from_user.id,
             username=callback.from_user.username,
             type_label="Видео",
@@ -378,7 +378,7 @@ async def callback_repeat_video(callback: CallbackQuery, session):
             kie_credits=0,
             tg_credits=0,
             status="Ошибка",
-        ))
+        )
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(

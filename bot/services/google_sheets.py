@@ -6,6 +6,8 @@ import aiohttp
 
 logger = logging.getLogger(__name__)
 
+GOOGLE_SHEETS_TIMEOUT = 60
+
 
 class GoogleSheetsService:
     def __init__(self, webhook_url: str):
@@ -20,9 +22,10 @@ class GoogleSheetsService:
         kie_credits: float,
         tg_credits: int,
         status: str = "Успешно",
-    ) -> None:
+    ) -> bool:
         if not self.url:
-            return
+            logger.warning("Google Sheets URL not configured, skipping")
+            return False
 
         now = datetime.now()
         payload = {
@@ -42,9 +45,21 @@ class GoogleSheetsService:
                 async with session.post(
                     self.url,
                     json=payload,
-                    timeout=aiohttp.ClientTimeout(total=5),
+                    timeout=aiohttp.ClientTimeout(total=GOOGLE_SHEETS_TIMEOUT),
+                    allow_redirects=True,
                 ) as resp:
-                    if resp.status != 200:
-                        logger.warning("Sheets webhook returned %s", resp.status)
+                    body = await resp.text()
+                    if resp.status == 200:
+                        logger.info("Sheets OK: %s", body[:200])
+                        return True
+                    else:
+                        logger.error(
+                            "Sheets HTTP %s: %s", resp.status, body[:200]
+                        )
+                        return False
+        except asyncio.TimeoutError:
+            logger.error("Sheets timeout after %ss", GOOGLE_SHEETS_TIMEOUT)
+            return False
         except Exception as e:
-            logger.warning("Failed to log to Google Sheets: %s", e)
+            logger.error("Sheets error: %s", e)
+            return False

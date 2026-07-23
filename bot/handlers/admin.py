@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from bot.config import settings
 from bot.database.repositories.credits import CreditsRepository
 from bot.database.repositories.stats import StatsRepository
+from bot.services.google_sheets import GoogleSheetsService
 from bot.keyboards.admin import (
     get_admin_main_keyboard,
     get_admin_user_select_keyboard,
@@ -305,3 +306,36 @@ async def cmd_give_credits(message: Message, session) -> None:
         f"✅ Выдано {amount} кредитов.\n"
         f"💰 Баланс: {new_balance} кредитов"
     )
+
+
+@router.message(F.text == "/test_sheets")
+async def cmd_test_sheets(message: Message) -> None:
+    if not _is_admin(message.from_user.id):
+        return
+
+    if not settings.google_sheets_url:
+        await message.answer("❌ GOOGLE_SHEETS_URL не задан в переменных Railway")
+        return
+
+    await message.answer("⏳ Отправляю тестовую строку в Google Таблицу...")
+
+    sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+    result = await sheets.log_transaction(
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        type_label="Тест",
+        model="test_model",
+        kie_credits=5.5,
+        tg_credits=10,
+        status="Успешно",
+    )
+
+    if result:
+        await message.answer("✅ Тест прошёл! Проверь Google Таблицу — должна появиться строка с типом 'Тест'")
+    else:
+        await message.answer(
+            "❌ Ошибка! Проверь:\n"
+            "1. GOOGLE_SHEETS_URL задан в Railway?\n"
+            "2. Apps Script задеплоен как 'Все'?\n"
+            "3. В Apps Script есть функция doPost?"
+        )

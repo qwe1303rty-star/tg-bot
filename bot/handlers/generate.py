@@ -181,14 +181,14 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
 
         from bot.config import settings
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=message.from_user.id,
             username=message.from_user.username,
             type_label="Фото",
             model=provider_name,
             kie_credits=0,
             tg_credits=cost,
-        ))
+        )
 
         elapsed = int(time.time() - start)
         await loading_msg.delete()
@@ -213,7 +213,7 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
         logger.exception("Generation failed: %s", e)
         from bot.config import settings
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=message.from_user.id,
             username=message.from_user.username,
             type_label="Фото",
@@ -221,7 +221,7 @@ async def handle_prompt(message: Message, state: FSMContext, session) -> None:
             kie_credits=0,
             tg_credits=0,
             status="Ошибка",
-        ))
+        )
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(
@@ -324,14 +324,14 @@ async def callback_repeat(callback: CallbackQuery, session):
 
         from bot.config import settings
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=callback.from_user.id,
             username=callback.from_user.username,
             type_label="Фото",
             model=provider_name,
             kie_credits=0,
             tg_credits=cost,
-        ))
+        )
 
         elapsed = int(time.time() - start)
         await loading_msg.delete()
@@ -357,7 +357,7 @@ async def callback_repeat(callback: CallbackQuery, session):
         logger.exception("Repeat generation failed: %s", e)
         from bot.config import settings
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-        asyncio.create_task(sheets.log_transaction(
+        await sheets.log_transaction(
             telegram_id=callback.from_user.id,
             username=callback.from_user.username,
             type_label="Фото",
@@ -365,7 +365,7 @@ async def callback_repeat(callback: CallbackQuery, session):
             kie_credits=0,
             tg_credits=0,
             status="Ошибка",
-        ))
+        )
         elapsed = int(time.time() - start)
         try:
             await loading_msg.edit_text(
