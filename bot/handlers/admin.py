@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from bot.config import settings
+from bot.database.repositories.credits import CreditsRepository
 from bot.database.repositories.stats import StatsRepository
 from bot.keyboards.admin import (
     get_admin_main_keyboard,
@@ -270,3 +271,37 @@ async def cb_admin_history_nav(callback: CallbackQuery, session) -> None:
         reply_markup=_history_keyboard(page, total_pages, db_user_id),
     )
     await callback.answer()
+
+
+@router.message(F.text.startswith("/give_credits"))
+async def cmd_give_credits(message: Message, session) -> None:
+    if not _is_admin(message.from_user.id):
+        return
+
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer("Использование: /give_credits <сумма>\nПример: /give_credits 10")
+        return
+
+    try:
+        amount = int(parts[1])
+    except ValueError:
+        await message.answer("Сумма должна быть числом.")
+        return
+
+    if amount <= 0:
+        await message.answer("Сумма должна быть положительной.")
+        return
+
+    credits_repo = CreditsRepository(session)
+    new_balance = await credits_repo.add_credits(
+        message.from_user.id,
+        amount,
+        tx_type="admin",
+        description=f"Выдано админом: +{amount}",
+    )
+
+    await message.answer(
+        f"✅ Выдано {amount} кредитов.\n"
+        f"💰 Баланс: {new_balance} кредитов"
+    )
