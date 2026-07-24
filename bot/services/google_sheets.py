@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 
 GOOGLE_SHEETS_TIMEOUT = 60
 
+KIE_PRICE_PER_CREDIT_RUB = 0.475
+TG_PRICE_PER_CREDIT_RUB = 0.83
+
 
 class GoogleSheetsService:
     def __init__(self, webhook_url: str):
@@ -22,12 +25,26 @@ class GoogleSheetsService:
         kie_credits: float,
         tg_credits: int,
         status: str = "Успешно",
+        cost_rub: float | None = None,
+        sale_rub: float | None = None,
+        profit: float | None = None,
+        margin: float | None = None,
     ) -> bool:
         if not self.url:
             logger.warning("Google Sheets URL not configured, skipping")
             return False
 
         now = datetime.now()
+
+        if cost_rub is None:
+            cost_rub = round(kie_credits * KIE_PRICE_PER_CREDIT_RUB, 2)
+        if sale_rub is None:
+            sale_rub = round(tg_credits * TG_PRICE_PER_CREDIT_RUB, 2)
+        if profit is None:
+            profit = round(sale_rub - cost_rub, 2)
+        if margin is None:
+            margin = round((profit / sale_rub) * 100, 1) if sale_rub > 0 else 0
+
         payload = {
             "date": now.strftime("%d.%m.%Y"),
             "time": now.strftime("%H:%M:%S"),
@@ -36,7 +53,11 @@ class GoogleSheetsService:
             "type": type_label,
             "model": model,
             "kie_credits": kie_credits,
+            "cost_rub": cost_rub,
             "tg_credits": tg_credits,
+            "sale_rub": sale_rub,
+            "profit": profit,
+            "margin": margin,
             "status": status,
         }
 

@@ -29,12 +29,6 @@ VIDEO_CREDIT_COSTS = {
     "veo": 256,
 }
 
-KIE_CREDIT_COSTS = {
-    "grok": 10.0,
-    "seedance": 69.0,
-    "veo": 307.0,
-}
-
 
 def _video_progress_bar(pct: int) -> str:
     filled = pct // 5
@@ -187,7 +181,7 @@ async def handle_video_prompt(message: Message, state: FSMContext, session) -> N
         user.last_video_generation_date = date.today()
         await session.commit()
 
-        kie_used = KIE_CREDIT_COSTS.get(provider_key, 10.0)
+        kie_used = provider_obj.last_credits_used
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
         await sheets.log_transaction(
             telegram_id=message.from_user.id,
@@ -333,7 +327,7 @@ async def callback_repeat_video(callback: CallbackQuery, session):
             user.last_video_generation_date = date.today()
             await session.commit()
 
-        kie_used = KIE_CREDIT_COSTS.get(provider_key, 10.0)
+        kie_used = provider_obj.last_credits_used
         sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
         await sheets.log_transaction(
             telegram_id=callback.from_user.id,

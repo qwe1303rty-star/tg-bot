@@ -35,6 +35,12 @@ KIE_VIDEO_MODELS = {
     },
 }
 
+KIE_CREDIT_COSTS_ESTIMATE = {
+    "grok": 9.6,
+    "seedance": 68.4,
+    "veo": 256.0,
+}
+
 VIDEO_PROGRESS_STAGES = [
     (0.0, 5),
     (0.10, 15),
@@ -55,6 +61,7 @@ class KieVideoProvider(AIProvider):
 
     def __init__(self, api_key: str = ""):
         self._api_key = api_key
+        self.last_credits_used: float = 0.0
 
     @property
     def name(self) -> str:
@@ -145,6 +152,13 @@ class KieVideoProvider(AIProvider):
                         "KieVideo: task %s status=%s, elapsed=%.1fs",
                         task_id, status, elapsed,
                     )
+                    logger.info(
+                        "KieVideo: task %s full data keys: %s",
+                        task_id, list(task_data.keys()),
+                    )
+                    for key in ("credits", "cost", "creditCost", "credit_cost", "creditsUsed", "credits_used", "totalCost", "total_cost", "balance", "balanceAfter"):
+                        if key in task_data:
+                            logger.info("KieVideo: task %s %s=%s", task_id, key, task_data[key])
 
                     if status == "success":
                         result_json = task_data.get("resultJson", "{}")
@@ -152,6 +166,22 @@ class KieVideoProvider(AIProvider):
                             result_obj = json.loads(result_json)
                         else:
                             result_obj = result_json
+
+                        actual_credits = 0.0
+                        for key in ("credits", "cost", "creditCost", "credit_cost", "creditsUsed", "credits_used", "totalCost", "total_cost"):
+                            if key in task_data and task_data[key]:
+                                try:
+                                    actual_credits = float(task_data[key])
+                                    logger.info("KieVideo: task %s actual credits from '%s' = %s", task_id, key, actual_credits)
+                                    break
+                                except (ValueError, TypeError):
+                                    pass
+
+                        if actual_credits <= 0:
+                            actual_credits = KIE_CREDIT_COSTS_ESTIMATE.get(model_key, 9.6)
+                            logger.info("KieVideo: task %s using estimate credits = %.2f (no credit field in response)", task_id, actual_credits)
+
+                        self.last_credits_used = actual_credits
 
                         result_urls = result_obj.get("resultUrls", [])
                         if not result_urls:
