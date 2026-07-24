@@ -183,7 +183,7 @@ async def cb_reset_limits_confirm(callback: CallbackQuery, session) -> None:
     await callback.message.edit_text(text, reply_markup=kb)
 
 
-@router.callback_query(F.data == "admin:users:0")
+@router.callback_query(F.data.startswith("admin:users:"))
 async def cb_users_page(callback: CallbackQuery, session) -> None:
     if not _is_admin(callback.from_user.id):
         await callback.answer()

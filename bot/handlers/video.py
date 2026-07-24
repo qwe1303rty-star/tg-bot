@@ -279,13 +279,19 @@ async def callback_repeat_video(callback: CallbackQuery, session):
         user.last_video_generation_date = today
         await session.commit()
 
-    if user.video_generations_today >= user.video_daily_limit:
+    from bot.database.repositories.admin_settings import AdminRepository
+    admin_repo = AdminRepository(session)
+    admin_settings = await admin_repo.get()
+
+    if not admin_settings.free_mode and user.video_generations_today >= user.video_daily_limit:
         await callback.answer("Лимит генераций видео на сегодня исчерпан", show_alert=True)
         return
 
     credits_repo = CreditsRepository(session)
     cost = VIDEO_CREDIT_COSTS.get(generation.provider, 10)
-    if not await credits_repo.has_enough(callback.from_user.id, cost):
+    if admin_settings.free_mode:
+        cost = 0
+    if cost > 0 and not await credits_repo.has_enough(callback.from_user.id, cost):
         await callback.answer("Недостаточно кредитов", show_alert=True)
         return
 

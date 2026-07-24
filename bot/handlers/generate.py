@@ -272,12 +272,18 @@ async def callback_repeat(callback: CallbackQuery, session):
         user.last_generation_date = today
         await session.commit()
 
-    if user.generations_today >= user.daily_limit:
+    from bot.database.repositories.admin_settings import AdminRepository
+    admin_repo = AdminRepository(session)
+    admin_settings = await admin_repo.get()
+
+    if not admin_settings.free_mode and user.generations_today >= user.daily_limit:
         await callback.answer("Лимит генераций на сегодня исчерпан", show_alert=True)
         return
 
     credits_repo = CreditsRepository(session)
     cost = IMAGE_CREDIT_COSTS.get(generation.provider, 6)
+    if admin_settings.free_mode:
+        cost = 0
     if cost > 0 and not await credits_repo.has_enough(callback.from_user.id, cost):
         await callback.answer("Недостаточно кредитов", show_alert=True)
         return

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Integer, func
+from sqlalchemy import Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bot.database.engine import Base

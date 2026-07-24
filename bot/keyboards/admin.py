@@ -115,8 +115,6 @@ def get_admin_broadcast_confirm_keyboard() -> InlineKeyboardMarkup:
 
 
 def get_admin_history_keyboard(page: int, total_pages: int, db_user_id: int):
-    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-
     nav = []
     if page > 0:
         nav.append(InlineKeyboardButton(
