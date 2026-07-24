@@ -43,3 +43,21 @@ class UserRepository:
             return user, False
         user = await self.create(telegram_id, username, first_name, last_name)
         return user, True
+
+    async def reset_all_limits(self) -> int:
+        from sqlalchemy import update
+        from datetime import date as date_type
+
+        today = date_type.today()
+        result = await self.session.execute(
+            update(User)
+            .where(User.last_generation_date == today)
+            .values(generations_today=0)
+        )
+        result2 = await self.session.execute(
+            update(User)
+            .where(User.last_video_generation_date == today)
+            .values(video_generations_today=0)
+        )
+        await self.session.commit()
+        return result.rowcount + result2.rowcount

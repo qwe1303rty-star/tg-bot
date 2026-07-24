@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.generation import Generation
+from bot.models.transaction import CreditTransaction
 from bot.models.user import User
 
 
@@ -91,3 +92,46 @@ class StatsRepository:
             select(func.count(Generation.id)).where(Generation.user_id == user_id)
         )
         return result.scalar_one()
+
+    async def count_users_used_limit(self) -> int:
+        today = date.today()
+        result = await self.session.execute(
+            select(func.count(User.id)).where(
+                and_(
+                    User.last_generation_date == today,
+                    User.generations_today >= User.daily_limit,
+                )
+            )
+        )
+        return result.scalar_one()
+
+    async def count_users_opened_shop(self) -> int:
+        result = await self.session.execute(
+            select(func.count(func.distinct(CreditTransaction.user_id))).where(
+                CreditTransaction.tx_type == "shop_open"
+            )
+        )
+        return result.scalar_one()
+
+    async def count_users_paid(self) -> int:
+        result = await self.session.execute(
+            select(func.count(func.distinct(CreditTransaction.user_id))).where(
+                CreditTransaction.tx_type == "purchase"
+            )
+        )
+        return result.scalar_one()
+
+    async def get_revenue_and_expense(self) -> tuple[int, float]:
+        revenue_result = await self.session.execute(
+            select(func.coalesce(func.sum(CreditTransaction.tg_credits), 0)).where(
+                CreditTransaction.tx_type == "purchase"
+            )
+        )
+        revenue = revenue_result.scalar_one()
+
+        expense_result = await self.session.execute(
+            select(func.coalesce(func.sum(CreditTransaction.kie_credits * 0.475), 0))
+        )
+        expense = expense_result.scalar_one()
+
+        return revenue, float(expense)

@@ -33,6 +33,8 @@ from bot.services.ai_providers.stub import StubProvider
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
+bot_instance = None
+
 
 async def on_startup() -> None:
     settings.media_path.mkdir(parents=True, exist_ok=True)
@@ -107,6 +109,8 @@ async def main() -> None:
     )
 
     dp["bot"] = bot
+    global bot_instance
+    bot_instance = bot
     dp["sheets"] = GoogleSheetsService(webhook_url=settings.google_sheets_url)
 
     logger.info("Bot starting...")

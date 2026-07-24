@@ -62,13 +62,17 @@ async def btn_generate(message: Message, state: FSMContext, session) -> None:
         await message.answer("Отправьте /start", reply_markup=get_main_keyboard(message.from_user.id))
         return
 
+    from bot.database.repositories.admin_settings import AdminRepository
+    admin_repo = AdminRepository(session)
+    admin_settings = await admin_repo.get()
+
     today = date.today()
     if user.last_generation_date != today:
         user.generations_today = 0
         user.last_generation_date = today
         await session.commit()
 
-    if user.generations_today >= user.daily_limit:
+    if not admin_settings.free_mode and user.generations_today >= user.daily_limit:
         await message.answer(
             "⚠️ Лимит генераций на сегодня исчерпан "
             f"({user.daily_limit}/день).\n\n"
@@ -79,6 +83,8 @@ async def btn_generate(message: Message, state: FSMContext, session) -> None:
 
     credits_repo = CreditsRepository(session)
     cost = IMAGE_CREDIT_COSTS.get(user.selected_provider, 6)
+    if admin_settings.free_mode:
+        cost = 0
     if cost > 0 and not await credits_repo.has_enough(message.from_user.id, cost):
         await message.answer(
             f"❌ Недостаточно кредитов!\n"
