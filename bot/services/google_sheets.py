@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 GOOGLE_SHEETS_TIMEOUT = 60
 
 KIE_PRICE_PER_CREDIT_RUB = 0.475
-TG_PRICE_PER_CREDIT_RUB = 0.83
+TG_PRICE_PER_CREDIT_RUB = 0.761
 
 
 class GoogleSheetsService:
