@@ -37,7 +37,7 @@ async def cmd_give_credits(message: Message, session) -> None:
 
     parts = message.text.split()
     if len(parts) < 2:
-        await message.answer("Использование: /give_credits <сумма>\nПример: /give_credits 10")
+        await message.answer("Использование: /give_credits сумма\nПример: /give_credits 10")
         return
 
     try:

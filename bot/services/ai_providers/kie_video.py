@@ -156,7 +156,7 @@ class KieVideoProvider(AIProvider):
                         "KieVideo: task %s full data keys: %s",
                         task_id, list(task_data.keys()),
                     )
-                    for key in ("credits", "cost", "creditCost", "credit_cost", "creditsUsed", "credits_used", "totalCost", "total_cost", "balance", "balanceAfter"):
+                    for key in ("creditsConsumed", "credits", "cost", "creditCost", "credit_cost", "creditsUsed", "credits_used", "totalCost", "total_cost", "balance", "balanceAfter"):
                         if key in task_data:
                             logger.info("KieVideo: task %s %s=%s", task_id, key, task_data[key])
 
@@ -168,7 +168,7 @@ class KieVideoProvider(AIProvider):
                             result_obj = result_json
 
                         actual_credits = 0.0
-                        for key in ("credits", "cost", "creditCost", "credit_cost", "creditsUsed", "credits_used", "totalCost", "total_cost"):
+                        for key in ("creditsConsumed", "credits", "cost", "creditCost", "credit_cost", "creditsUsed", "credits_used", "totalCost", "total_cost"):
                             if key in task_data and task_data[key]:
                                 try:
                                     actual_credits = float(task_data[key])
