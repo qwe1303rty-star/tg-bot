@@ -30,6 +30,9 @@ def get_admin_dashboard_keyboard(limits_enabled: bool, free_mode: bool) -> Inlin
                 InlineKeyboardButton(text="📝 Тексты", callback_data="admin:texts"),
             ],
             [
+                InlineKeyboardButton(text="📜 История запросов", callback_data="admin:history_select"),
+            ],
+            [
                 InlineKeyboardButton(text="⭐ Ссылка на Звезды", callback_data="admin:stars_link"),
             ],
             [
