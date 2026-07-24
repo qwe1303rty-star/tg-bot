@@ -18,11 +18,6 @@ from bot.keyboards.main import get_main_keyboard
 router = Router(name="admin")
 logger = logging.getLogger(__name__)
 
-# Debug: ловим все сообщения в admin_router
-@router.message()
-async def debug_all(message: Message) -> None:
-    logger.info("ADMIN ROUTER REACHED: text=%s user=%s", message.text, message.from_user.id)
-
 USERS_PER_PAGE = 10
 HISTORY_PER_PAGE = 10
 
@@ -31,7 +26,86 @@ def _is_admin(user_id: int) -> bool:
     return user_id in settings.admin_ids
 
 
-@router.message(lambda m: m.text == "📊 Статистика")
+@router.message(Command("give_credits"))
+async def cmd_give_credits(message: Message, session) -> None:
+    logger.info("give_credits: user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
+
+    if not _is_admin(message.from_user.id):
+        logger.warning("give_credits: user %s is NOT admin", message.from_user.id)
+        await message.answer(f"❌ Ты не админ. Твой ID: {message.from_user.id}")
+        return
+
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer("Использование: /give_credits <сумма>\nПример: /give_credits 10")
+        return
+
+    try:
+        amount = int(parts[1])
+    except ValueError:
+        await message.answer("Сумма должна быть числом.")
+        return
+
+    if amount <= 0:
+        await message.answer("Сумма должна быть положительной.")
+        return
+
+    credits_repo = CreditsRepository(session)
+    new_balance = await credits_repo.add_credits(
+        message.from_user.id,
+        amount,
+        tx_type="admin",
+        description=f"Выдано админом: +{amount}",
+    )
+
+    await message.answer(
+        f"✅ Выдано {amount} кредитов.\n"
+        f"💰 Баланс: {new_balance} кредитов"
+    )
+
+
+@router.message(Command("test_sheets"))
+async def cmd_test_sheets(message: Message) -> None:
+    logger.info("test_sheets: user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
+
+    if not _is_admin(message.from_user.id):
+        logger.warning("test_sheets: user %s is NOT admin", message.from_user.id)
+        await message.answer(f"❌ Ты не админ. Твой ID: {message.from_user.id}. Admin IDs: {settings.admin_ids}")
+        return
+
+    logger.info("test_sheets: user is admin, checking GOOGLE_SHEETS_URL")
+
+    if not settings.google_sheets_url:
+        logger.error("test_sheets: GOOGLE_SHEETS_URL is empty!")
+        await message.answer("❌ GOOGLE_SHEETS_URL не задан в переменных Railway")
+        return
+
+    logger.info("test_sheets: GOOGLE_SHEETS_URL=%s", settings.google_sheets_url)
+    await message.answer("⏳ Отправляю тестовую строку в Google Таблицу...")
+
+    sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
+    result = await sheets.log_transaction(
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        type_label="Тест",
+        model="test_model",
+        kie_credits=5.5,
+        tg_credits=10,
+        status="Успешно",
+    )
+
+    if result:
+        await message.answer("✅ Тест прошёл! Проверь Google Таблицу — должна появиться строка с типом 'Тест'")
+    else:
+        await message.answer(
+            "❌ Ошибка! Проверь:\n"
+            "1. GOOGLE_SHEETS_URL задан в Railway?\n"
+            "2. Apps Script задеплоен как 'Все'?\n"
+            "3. В Apps Script есть функция doPost?"
+        )
+
+
+@router.message(F.text == "📊 Статистика")
 async def cmd_admin_stats(message: Message, session) -> None:
     if not _is_admin(message.from_user.id):
         return
@@ -207,8 +281,6 @@ async def cb_admin_user_history(callback: CallbackQuery, session) -> None:
 
     text = "\n".join(lines)
 
-    callback_data = f"admin:hist:{db_user_id}"
-
     await callback.message.edit_text(
         text,
         reply_markup=_history_keyboard(0, total_pages, db_user_id),
@@ -280,82 +352,3 @@ async def cb_admin_history_nav(callback: CallbackQuery, session) -> None:
         reply_markup=_history_keyboard(page, total_pages, db_user_id),
     )
     await callback.answer()
-
-
-@router.message(Command("give_credits"))
-async def cmd_give_credits(message: Message, session) -> None:
-    logger.info("give_credits command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
-
-    if not _is_admin(message.from_user.id):
-        logger.warning("give_credits: user %s is NOT admin (admin_ids=%s)", message.from_user.id, settings.admin_ids)
-        await message.answer(f"❌ Ты не админ. Твой ID: {message.from_user.id}")
-        return
-
-    parts = message.text.split()
-    if len(parts) < 2:
-        await message.answer("Использование: /give_credits <сумма>\nПример: /give_credits 10")
-        return
-
-    try:
-        amount = int(parts[1])
-    except ValueError:
-        await message.answer("Сумма должна быть числом.")
-        return
-
-    if amount <= 0:
-        await message.answer("Сумма должна быть положительной.")
-        return
-
-    credits_repo = CreditsRepository(session)
-    new_balance = await credits_repo.add_credits(
-        message.from_user.id,
-        amount,
-        tx_type="admin",
-        description=f"Выдано админом: +{amount}",
-    )
-
-    await message.answer(
-        f"✅ Выдано {amount} кредитов.\n"
-        f"💰 Баланс: {new_balance} кредитов"
-    )
-
-
-@router.message(Command("test_sheets"))
-async def cmd_test_sheets(message: Message) -> None:
-    logger.info("test_sheets command received from user_id=%s, admin_ids=%s", message.from_user.id, settings.admin_ids)
-
-    if not _is_admin(message.from_user.id):
-        logger.warning("test_sheets: user %s is NOT admin (admin_ids=%s)", message.from_user.id, settings.admin_ids)
-        await message.answer(f"❌ Ты не админ. Твой ID: {message.from_user.id}. Admin IDs: {settings.admin_ids}")
-        return
-
-    logger.info("test_sheets: user is admin, checking GOOGLE_SHEETS_URL")
-
-    if not settings.google_sheets_url:
-        logger.error("test_sheets: GOOGLE_SHEETS_URL is empty!")
-        await message.answer("❌ GOOGLE_SHEETS_URL не задан в переменных Railway")
-        return
-
-    logger.info("test_sheets: GOOGLE_SHEETS_URL=%s", settings.google_sheets_url)
-    await message.answer("⏳ Отправляю тестовую строку в Google Таблицу...")
-
-    sheets = GoogleSheetsService(webhook_url=settings.google_sheets_url)
-    result = await sheets.log_transaction(
-        telegram_id=message.from_user.id,
-        username=message.from_user.username,
-        type_label="Тест",
-        model="test_model",
-        kie_credits=5.5,
-        tg_credits=10,
-        status="Успешно",
-    )
-
-    if result:
-        await message.answer("✅ Тест прошёл! Проверь Google Таблицу — должна появиться строка с типом 'Тест'")
-    else:
-        await message.answer(
-            "❌ Ошибка! Проверь:\n"
-            "1. GOOGLE_SHEETS_URL задан в Railway?\n"
-            "2. Apps Script задеплоен как 'Все'?\n"
-            "3. В Apps Script есть функция doPost?"
-        )
